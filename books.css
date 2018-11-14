@@ -1,0 +1,52 @@
+.container {
+    margin-top: 5%;
+}
+
+#book-table {
+    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#book-table td, #book-table th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+#book-table tr:nth-child(even){background-color: #f2f2f2;}
+
+#book-table tr:hover {background-color: #ddd;}
+
+
+#book-table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #4CAF50;
+    color: white;
+}
+
+#books-table {
+    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#books-table td, #books-table th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+#books-table tr:nth-child(even){background-color: #f2f2f2;}
+
+#books-table tr:hover {background-color: #ddd;}
+
+
+#books-table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #4CAF50;
+    color: white;
+}
+
