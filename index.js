@@ -1,106 +1,165 @@
-const express = require('express')
-const app = express()
-const port = 3000
+const express = require('express');
+const app = express();
+const path = require('path');
+const port = process.env.PORT || 3000;
+const parseJson = require('parse-json');
+const bodyParser = require('body-parser');
+var MongoClient = require('mongodb').MongoClient;
+var mongoose = require("mongoose");
+var ObjectID = require('mongodb').ObjectID;
+var Users = require('./UserSchema');
+var exports = module.exports = {};
+mongoose.connect("mongodb://localhost:27017/login");
+var db = mongoose.connection;
+app.use(express.json());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '/')));
+app.set('views', path.join(__dirname,'views'));
+app.set('view engine', 'pug');
 
-var MongoClient = require('mongodb').MongoClient
-var ObjectID = require('mongodb').ObjectID
+db.on("error", console.error.bind(console, "connection error"));
+db.once("open", function(callback) {
+     console.log("Connection succeeded to Mongodb using Mongoose");
+})
+     app.get('/login/', (req,res) => {
+        console.log("Login API")
+        res.render('login', {
+            title:'Login to Personal Notes',
+        })
+    })
 
-app.use(express.json())
-app.use(express.static('public'))
+    app.get('/register/', (req,res) => {
+        console.log("Register API")
+        res.render('register', {
+            title:'Register to add Personal Notes',
+        })
+    })
+    app.post('/api/login', (req,res) => {
+        console.log("Login API")
+        console.log(req.body);
+        let userSchema = new Users(req.body);
+        userSchema.save((err, data)=>{
+            if (err) {
+                console.log(err)
+                res.status(500).send("internal Server Error")
+            }else{
+                res.send(data);
+            }
+        })
+    }) 
+ 
 
-MongoClient.connect('mongodb://localhost:27017/books', function (err, client) {
+    app.post('/api/register', (req,res) => {
+        console.log("Register API")
+        console.log(req.body);
+        let userSchema = new Users(req.body);
+        userSchema.save((err, data)=>{
+            if (err) {
+                console.log(err)
+                res.status(500).send("internal Server Error")
+            }else{
+                res.send(data);
+            }
+        })
+    }) 
+
+MongoClient.connect('mongodb://localhost:27017/notes', function (err, client) {
+let db = client.db('notes')
+let notes = db.collection('notes')
   if (err) throw err
 
-  let db = client.db('books')
-  let books = db.collection('books')
-  
-  app.post('/books', (req, res) => {
-    let newRecord = req.body
-    console.log(req.body)
-    books.insertOne(newRecord, function(err, result) {
-      if (err) {
-        console.log(err)
-        res.status(500).send("There was an internal error")
-      } else {
-        console.log(req.body)
-        res.send(result.ops[0])
-        console.log("INSERT DATA DONE")
-      }
+app.get('/notes/', (req,res) => {
+    notes.find().toArray((err, result) => {
+        res.render('index', {
+            title:'Get all notes',
+            notes: result
+        })
     });
-  });
+})
 
-  app.get('/books/:id', (req, res) => {
-    let id = ObjectID.createFromHexString(req.params.id)
+app.get('/api/notes/', (req, res) => {
+        notes.find().toArray((err, result) => {
+            if (err) throw err;
+            else{
+                (result === null) ? res.status(404).send("Data not found") : res.status(200).send(result);
+            }   
+        });
+    })  
 
-    books.findOne({"_id": id}, function(err, book) {
-      if (err) {
-        console.log(err)
-        res.status(500).send("Internal server error")
-      } else {
-        console.log(book)
-        if (book === null) {
-          res.status(404).send("Not found")
-        } else {
-          console.log(book)
-          res.send(book)
+app.post('/api/notes/search', (req, res) => {
+        let body = req.body;
+       // notes.createIndex({message : "text"})
+       notes.find({message : {"$regex"  : body.searchText}}).toArray((err, data)=>{
+        if (err){
+            console.log(err)
+            res.status(500).send("Some internal error");
         }
-      }
-    });
-  });
+        else{
+            res.send(data);
+        }
+    })     
+})
 
-   
-  app.put('/books', (req, res) => {
-    let newRecord = req.body
-    console.log(req.body)
-    books.insertOne(newRecord, function(err, result) {
-      if (err) {
-        console.log(err)
-        res.status(500).send("There was an internal error")
-      } else {
-        console.log(req.body)
-        res.status(204)
-        res.send(result.ops[0])
-        console.log("INSERT DATA DONE")
-      }
-    });
-  });
-
-  app.delete('/books/:id', (req, res) => {
+app.get('/api/notes/:id', (req, res) => {
     let id = ObjectID.createFromHexString(req.params.id)
-    console.log("Input is ")
-    console.log(id)
-    db.books.findOneAndRemove({"_id":id}, function (err, result) {
-      if (err) {
-        console.log(err)
-        res.status(500).send("There was an internal server error")
-      } else {
-        console.log(req.body)
-        res.status(204)
-        console.log("Delete data done")
-      }
-    });
-    
-    console.log("Deleted the record")
-        
-  });
-
-  app.get('/booksAll', (req, res) => {
-    db.collection("books").find({}).toArray(function(err,books)
-  {
-    if (err) {
-      console.log(err)
-      res.status(500).send("Internal server error?")
-    } else {
-      console.log("TEST here!!")
-      res.status(200)
-      console.log(books)
-      res.send(books)
+    notes.findOne({'_id': id}, (err, note) => {
+        if (err) {
+            console.log(err)
+            res.status(500).send("internal Server Error")
+        }
+        else {
+            (note === null) ? res.status(404).send("Data not found") : res.send(note);
     }
-  })
+    })
+})
 
-});
+app.post('/api/notes', (req, res) => {
+    let body = req.body;
+    notes.insert(body, (err, result) => {
+        if (err){
+            console.log(err)
+            res.status(500).send("Some internal error");
+        }
+        else{
+            res.send(result);
+        }
+    })   
+})
+
+app.put('/api/notes/:id', (req, res) => {
+    let id = ObjectID.createFromHexString(req.params.id);
+    let subject = req.body.subject;
+    let author = req.body.author;
+    let message = req.body.message;
+    let noteLength = req.body.noteLength;
+    let noteTime  = req.body.noteTime;
+    let newvalues = {$set : {subject : `${subject}`,author : `${author}`,message : `${message}`,noteLength : `${noteLength}`,noteTime : `${noteTime}`}};
+    notes.updateOne({"_id" : id}, newvalues , (err, note) => {
+    if (err) {
+        console.log(err)
+        res.status(500).send("internal Server Error")
+    }
+    else {
+        (note === null) ? res.status(404).send("Data not found") : res.status(204).send(note);
+    }
+    })
+})  
+
+app.delete('/api/notes/:id', (req, res) => {
+    let id = ObjectID.createFromHexString(req.params.id);
+    notes.removeOne({'_id': id}, (err, note) => {
+        if (err) {
+            console.log(err)
+            res.status(500).send("internal Server Error")
+        }
+        else {
+            (note === null) ? res.status(404).send("Data not found") : res.status(204).send(note);
+        }
+    })
+})
 
 })
 
+var server = app.listen(port, () => console.log(`Example app listening on port ${port}!`))
 
-app.listen(port, () => console.log(`Example app listening on port ${port}!`))
